@@ -1,8 +1,12 @@
 mod args;
 mod as_aob;
 
-use std::io::Read;
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
 
+use anyhow::Context;
 use clap::Parser;
 
 use args::{Args, Endianness, ValueType};
@@ -11,14 +15,37 @@ use as_aob::AsAOB;
 fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
 
+    // open files
+    let mut in_file = File::open(&args.in_file).context("unable to open input file")?;
+    let mut out_file = File::create(&args.out_file).context("unable to create output file")?;
     let mut data = Vec::new();
-    let mut file = std::fs::File::open(&args.filename).unwrap();
-    file.read_to_end(&mut data).unwrap();
+    in_file.read_to_end(&mut data)?;
 
-    let results = scan_value_str(&data, &args.value, args.value_type, args.endianness)?;
+    // scan input file
+    let mut results = scan_value_str(&data, &args.value, args.value_type, args.endianness)?;
+    println!("{} results found", results.len());
 
+    // compare results to saved compare file
+    if let Some(compare) = &args.compare_file {
+        let mut compare_file = File::open(compare).context("unable to open compare file")?;
+        let mut compare_data = Vec::new();
+        compare_file.read_to_end(&mut compare_data)?;
+        let compare_results = compare_data
+            .chunks_exact(8)
+            .map(|chunk| u64::from_le_bytes(chunk.try_into().unwrap()))
+            .collect::<Vec<_>>();
+        results = results
+            .iter()
+            .filter(|res| compare_results.contains(res))
+            .copied()
+            .collect();
+        println!("{} results found after filter", results.len());
+    }
+
+    // write results
     for addr in &results {
         println!("addr: {addr:#X}");
+        out_file.write_all(&addr.to_le_bytes())?;
     }
     println!("{} results", results.len());
 

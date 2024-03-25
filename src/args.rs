@@ -3,12 +3,16 @@ use clap::{Parser, ValueEnum};
 #[derive(Parser)]
 pub struct Args {
     /// the file to search in
-    pub filename: String,
-    #[arg(short = 't', long)]
-    pub value_type: ValueType,
+    pub in_file: String,
+    /// the file to output results in
+    pub out_file: String,
+    /// the file containing results to compare to
+    pub compare_file: Option<String>,
     /// the value to search for
     #[arg(short, long, allow_hyphen_values = true)]
     pub value: String,
+    #[arg(short = 't', long)]
+    pub value_type: ValueType,
     #[arg(short, long, default_value = "little")]
     pub endianness: Endianness,
 }
@@ -19,10 +23,10 @@ pub enum ValueType {
     I16,
     I32,
     I64,
-    Float,
-    Double,
+    // Float,
+    // Double,
     AOB,
-    CStr,
+    // CStr,
 }
 
 #[derive(Clone, Copy, ValueEnum)]

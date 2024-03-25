@@ -1,20 +1,34 @@
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 pub struct Args {
-    /// the file to search in
-    pub in_file: String,
-    /// the file to output results in
-    pub out_file: String,
-    /// the file containing results to compare to
-    pub compare_file: Option<String>,
-    /// the value to search for
-    #[arg(short, long, allow_hyphen_values = true)]
-    pub value: String,
-    #[arg(short = 't', long)]
-    pub value_type: ValueType,
-    #[arg(short, long, default_value = "little")]
-    pub endianness: Endianness,
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Subcommand)]
+pub enum Command {
+    Scan {
+        /// the file to search in
+        in_file: String,
+        /// the file to output results in
+        out_file: String,
+        /// the file containing results to compare to
+        compare_file: Option<String>,
+        /// the value to search for
+        #[arg(short, long, allow_hyphen_values = true)]
+        value: String,
+        #[arg(short = 't', long)]
+        value_type: ValueType,
+        #[arg(short, long, default_value = "little")]
+        endianness: Endianness,
+        /// print results
+        #[arg(short, long)]
+        dump: bool,
+    },
+    Dump {
+        file: String,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]

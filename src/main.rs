@@ -2,6 +2,7 @@ mod args;
 mod as_aob;
 
 use std::{
+    collections::HashSet,
     fs::File,
     io::{Read, Write},
     num::ParseIntError,
@@ -34,7 +35,7 @@ fn main() -> Result<(), anyhow::Error> {
         let compare_results = compare_data
             .chunks_exact(8)
             .map(|chunk| u64::from_le_bytes(chunk.try_into().unwrap()))
-            .collect::<Vec<_>>();
+            .collect::<HashSet<_>>();
         results = results
             .iter()
             .filter(|res| compare_results.contains(res))

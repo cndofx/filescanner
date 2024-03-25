@@ -4,9 +4,10 @@ mod as_aob;
 use std::{
     fs::File,
     io::{Read, Write},
+    num::ParseIntError,
 };
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use clap::Parser;
 
 use args::{Args, Endianness, ValueType};
@@ -43,11 +44,13 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     // write results
-    for addr in &results {
-        println!("addr: {addr:#X}");
-        out_file.write_all(&addr.to_le_bytes())?;
-    }
-    println!("{} results", results.len());
+    let output = results
+        .iter()
+        .flat_map(|res| res.to_le_bytes())
+        .collect::<Vec<_>>();
+    out_file.write_all(&output)?;
+
+    println!("{} results saved", results.len());
 
     Ok(())
 }
@@ -63,7 +66,7 @@ fn scan_value_str(
         ValueType::I16 => Ok(scan_value(data, value.parse::<i32>()? as u16, endianness)),
         ValueType::I32 => Ok(scan_value(data, value.parse::<i64>()? as u32, endianness)),
         ValueType::I64 => Ok(scan_value(data, value.parse::<i128>()? as u64, endianness)),
-        _ => todo!(),
+        ValueType::AOB => Ok(scan_aob(data, &parse_aob(value)?)),
     }
 }
 
@@ -95,4 +98,20 @@ fn scan_aob(data: &[u8], aob: &[u8]) -> Vec<u64> {
     }
 
     results
+}
+
+fn parse_aob(s: &str) -> Result<Vec<u8>, anyhow::Error> {
+    if s.len() % 2 != 0 {
+        bail!("aob input length must be a multiple of 2");
+    }
+
+    let chars = s.chars().collect::<Vec<_>>();
+    let bytes = chars
+        .chunks_exact(2)
+        .map(|chunk| chunk.iter().collect::<String>())
+        .map(|str| u8::from_str_radix(&str, 16))
+        .collect::<Result<Vec<u8>, ParseIntError>>()
+        .context("unable to parse input as hex")?;
+
+    Ok(bytes)
 }
